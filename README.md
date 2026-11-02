@@ -30,3 +30,15 @@
 ## Timeline
 - Individual idea pitches: **Sunday/Monday**
 - Choose a direction and write the spec sheet, then present to the mentors: **next Thursday**
+
+## Capture & privacy work (Group 1)
+| Ticket | What | Where |
+|---|---|---|
+| KAN-33 | Scrubbing design + planted-secret acceptance test | [docs/design/scrubbing.md](docs/design/scrubbing.md), [tests/planted_set.py](tests/planted_set.py) |
+| KAN-34 | Scrubber: secrets, IPs, hosts, users, paths → consistent placeholders | [scrubber/](scrubber) |
+| KAN-29 | File-edit detection design + acceptance test | [docs/design/file-edit-detection.md](docs/design/file-edit-detection.md), [tests/test_file_edit_acceptance.py](tests/test_file_edit_acceptance.py) |
+
+```bash
+pip install pytest && pytest                     # unit + acceptance tests (planted-secret recall: 52/52)
+python -m scrubber in.cast -o out.cast --source S --consent C --license L [--term CustomerName]
+```

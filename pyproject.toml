@@ -1,0 +1,13 @@
+[project]
+name = "csc398-capture"
+version = "0.1.0"
+description = "Capture & privacy tooling for the asciinema learning project (CSC398 Group 9)"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".", "tests"]
