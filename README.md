@@ -55,10 +55,16 @@ Everything reads and writes **event schema v1** ([contracts/events.py](contracts
 | KAN-83 | Training datasets: task-grouped splits, chat SFT + DPO | [trainrec/dataset.py](trainrec/dataset.py) | [training-records.md §6](docs/design/training-records.md) |
 | KAN-47, KAN-75 | Automation scripts + Dockerfiles from canonical procedures | [generate/](generate) | [automation.md](docs/design/automation.md) |
 | KAN-69, KAN-71 | Retrieval eval format, first 20 queries, recall@k/MRR, BM25 baseline | [retrieval_eval/](retrieval_eval) | [retrieval_eval/README.md](retrieval_eval/README.md) |
+| KAN-39 | Human review/correction of tags (also on live sessions) | [review/](review) | [training-records.md §1](docs/design/training-records.md) |
+| KAN-58 | "Why?" interviewer: questions on mistakes/discoveries, scrubbed `explanation` answers | [interview/](interview) | [interviewer.md](docs/design/interviewer.md) |
+| KAN-31 | Cross-session file history for `get_file_history` | [fileedit/history.py](fileedit/history.py) | |
+| KAN-76 | Generated Dockerfiles/scripts built and run in a locked-down Docker sandbox | [tests/test_sandbox.py](tests/test_sandbox.py) | [automation.md](docs/design/automation.md) |
+| KAN-63, KAN-72 | CI: tests on 3.10/3.12 (incl. zsh + Docker), benchmark and retrieval gates, weekly reports | [.github/workflows/eval.yml](.github/workflows/eval.yml) | |
+| KAN-80, KAN-84 | Integration checks + handover for post-mortems and training data | [tests/test_analysis_integration.py](tests/test_analysis_integration.py) | [handover/analysis.md](docs/handover/analysis.md) |
 | KAN-111, KAN-115 | Local dashboard: Sessions home, Privacy & cloud settings | [dashboard/](dashboard) | |
 
 ```bash
-pip install pytest && pytest                      # ~300 tests
+pip install pytest && pytest                      # ~380 tests (CI: .github/workflows/eval.yml)
 python -m capture import old.cast -o old.events.jsonl --source S --consent C --license L
 eval "$(python -m capture start --dir runs/s1 --source S --consent C --license L)"   # ... work ...
 python -m capture stop --dir runs/s1
