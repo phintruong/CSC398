@@ -1,0 +1,57 @@
+# Tests + benchmark and retrieval gates (KAN-63, KAN-72).
+# Quick checks on every push/PR; a weekly full run uploads the reports.
+# Secret scanning (Gitleaks) and the rest of the PR checks are KAN-107.
+name: eval
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1" # Mondays 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Shells for the hook tests
+        run: sudo apt-get update -q && sudo apt-get install -y -q zsh patch
+      - run: pip install pytest
+      - name: Unit, acceptance, privacy, integration and sandbox tests
+        run: python -m pytest -q
+
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Benchmark gate (rule baseline must pass the pass rules)
+        run: |
+          python -m bench baseline --gold fixtures/data --out runs/pred-rules --model rules
+          python -m bench run --gold fixtures/data --pred runs/pred-rules -o runs/bench-rules.json
+      - name: Benchmark (replay upper bound)
+        run: |
+          python -m bench baseline --gold fixtures/data --out runs/pred-replay --model replay
+          python -m bench run --gold fixtures/data --pred runs/pred-replay -o runs/bench-replay.json
+      - name: Retrieval eval gate (BM25 baseline, MRR >= 0.8)
+        run: python -m retrieval_eval --min-mrr 0.8 --per-query > runs/retrieval.json
+      - name: Upload reports (weekly / manual runs)
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-reports
+          path: runs/*.json
+          retention-days: 90

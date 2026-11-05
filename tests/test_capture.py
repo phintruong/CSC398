@@ -239,3 +239,28 @@ def test_bash_hooks_end_to_end(tmp_path):
     assert cmds.count("echo one > a.txt") == 1 and "false" in cmds
     assert [e["exit_code"] for e in evs if e["type"] == "command" and e["command"] == "false"] == [1]
     assert [e["change"] for e in evs if e["type"] == "file_edit"] == ["created"]
+
+
+ZSH = shutil.which("zsh")
+
+
+@pytest.mark.skipif(not ZSH, reason="zsh not installed")
+def test_zsh_hooks_end_to_end(tmp_path):
+    d = tmp_path / "s"
+    r = _cli("start", "--dir", str(d), "--shell", "zsh", "--source", "t", "--consent", "synthetic", "--license", "none")
+    assert r.returncode == 0, r.stderr
+    env_sh = tmp_path / "env.sh"
+    env_sh.write_text(r.stdout, encoding="utf-8")
+    zdot = tmp_path / "zdot"  # empty ZDOTDIR: no user rc, no new-user wizard
+    zdot.mkdir()
+    script = f"source '{env_sh.as_posix()}'\necho one > a.txt\nfalse\nexit\n"
+    subprocess.run([ZSH, "-i"], input=script, text=True, capture_output=True, cwd=tmp_path,
+                   env={**os.environ, "ZDOTDIR": str(zdot), "HISTFILE": os.devnull}, timeout=60)
+    r = _cli("stop", "--dir", str(d))
+    assert r.returncode == 0, r.stderr
+    h, evs = loads_session((d / "session.events.jsonl").read_text(encoding="utf-8"))
+    assert validate_session(h, evs) == []
+    cmds = [e["command"] for e in evs if e["type"] == "command"]
+    assert "echo one > a.txt" in cmds and "false" in cmds
+    assert [e["exit_code"] for e in evs if e["type"] == "command" and e["command"] == "false"] == [1]
+    assert [e["change"] for e in evs if e["type"] == "file_edit"] == ["created"]
