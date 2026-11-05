@@ -1,0 +1,20 @@
+{"id": "q001", "kind": "how_did_i_fix", "query": "how did I fix the nginx config test failure?", "expected": ["mock-nginx-port#f10"], "also_relevant": ["mock-nginx-port#c12"]}
+{"id": "q002", "kind": "explain_error", "query": "why did nginx -t fail after I changed the port?", "expected": ["mock-nginx-port#f5"], "also_relevant": ["mock-nginx-port#c7"]}
+{"id": "q003", "kind": "find_command", "query": "command to reload nginx without downtime", "expected": ["mock-nginx-port#c14", "mock-nginx-port-rerun#c9"]}
+{"id": "q004", "kind": "file_history", "query": "every change I made to /etc/nginx/sites-available/default", "expected": ["mock-nginx-port#f5", "mock-nginx-port#f10", "mock-nginx-port-rerun#f5"]}
+{"id": "q005", "kind": "find_command", "query": "check which HTTP status the site returns on port 8080", "expected": ["mock-nginx-port#c16", "mock-nginx-port-rerun#c11"]}
+{"id": "q006", "kind": "how_did_i_fix", "query": "pip says externally managed environment, what did I do?", "expected": ["mock-python-venv#c4"], "also_relevant": ["mock-python-venv#c6", "mock-python-venv#c8", "mock-python-venv#c2"]}
+{"id": "q007", "kind": "find_command", "query": "create a python virtual environment", "expected": ["mock-python-venv#c4"]}
+{"id": "q008", "kind": "find_command", "query": "activate the venv", "expected": ["mock-python-venv#c6"]}
+{"id": "q009", "kind": "explain_error", "query": "PEP 668 error when installing requirements", "expected": ["mock-python-venv#c2"]}
+{"id": "q010", "kind": "how_did_i_fix", "query": "how did I resolve the merge conflict in config.js", "expected": ["mock-git-conflict#f7"], "also_relevant": ["mock-git-conflict#c9"]}
+{"id": "q011", "kind": "file_history", "query": "edits to src/config.js", "expected": ["mock-git-conflict#f7"]}
+{"id": "q012", "kind": "explain_error", "query": "git pull automatic merge failed", "expected": ["mock-git-conflict#c2"]}
+{"id": "q013", "kind": "find_command", "query": "finish a merge after fixing conflicts", "expected": ["mock-git-conflict#c9"]}
+{"id": "q014", "kind": "how_did_i_fix", "query": "docker image wouldn't build because a file couldn't be opened", "expected": ["mock-docker-build#f7"], "also_relevant": ["mock-docker-build#c2", "mock-docker-build#c9"]}
+{"id": "q015", "kind": "explain_error", "query": "Could not open requirements file No such file or directory", "expected": ["mock-docker-build#c2"]}
+{"id": "q016", "kind": "file_history", "query": "what did I change in the Dockerfile", "expected": ["mock-docker-build#f7"]}
+{"id": "q017", "kind": "find_command", "query": "run the api container and publish port 8000", "expected": ["mock-docker-build#c11"]}
+{"id": "q018", "kind": "how_did_i_fix", "query": "server was slow, high load average, what fixed it", "expected": ["mock-resize-htop#c7"], "also_relevant": ["mock-resize-htop#c4", "mock-resize-htop#c1"]}
+{"id": "q019", "kind": "find_command", "query": "find the process eating all the CPU", "expected": ["mock-resize-htop#c4"]}
+{"id": "q020", "kind": "find_command", "query": "restart the report worker service", "expected": ["mock-resize-htop#c7"]}
