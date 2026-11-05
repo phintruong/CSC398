@@ -44,7 +44,9 @@ class S:
         self.t = round(self.t + think, 3)
         if command.startswith("cd "):
             target = command[3:].strip()
-            self.cwd = target if target.startswith("/") else f"{self.cwd}/{target}".replace("~", f"/home/{PROMPT_USER}")
+            if target.startswith("~"):
+                target = f"/home/{PROMPT_USER}" + target[1:]
+            self.cwd = target if target.startswith("/") else f"{self.cwd}/{target}"
         eid = self._id("c")
         self.events.append({
             "type": "command", "id": eid, "t": self.t, "t_end": round(self.t + dur, 3), "duration": dur,

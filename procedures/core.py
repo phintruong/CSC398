@@ -169,6 +169,7 @@ def canonical_procedure(runs: Sequence[Run], min_support: float = 0.5) -> list[d
         if not _good(s) or support < min_support:
             continue
         item = {"n": len(out) + 1, "action": s.label(), "support": round(support, 2), "evidence": slot["evidence"]}
+        item["cwd"] = s.ev.get("cwd") if s.kind == "command" else _cwd_of_edit(s, ref)
         if s.kind == "command":
             item["command"] = s.ev["command"]
         else:
@@ -177,3 +178,14 @@ def canonical_procedure(runs: Sequence[Run], min_support: float = 0.5) -> list[d
             item["why"] = s.ann["summary"]
         out.append(item)
     return out
+
+
+def _cwd_of_edit(s: Step, run: Run) -> str | None:
+    """A file edit's working directory: that of the latest command at or before it."""
+    cwd = None
+    for st in run.steps:
+        if st.t > s.t:
+            break
+        if st.kind == "command" and st.ev.get("cwd"):
+            cwd = st.ev["cwd"]
+    return cwd
