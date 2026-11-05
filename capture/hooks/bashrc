@@ -1,0 +1,3 @@
+# rcfile for `python -m capture record` (bash): the user's normal rc, then the hooks.
+[ -f "$HOME/.bashrc" ] && . "$HOME/.bashrc"
+. "$(dirname "${BASH_SOURCE[0]}")/capture.bash"
