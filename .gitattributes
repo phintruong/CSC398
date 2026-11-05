@@ -1,0 +1,9 @@
+* text=auto
+# shell scripts must keep LF or bash/zsh break on Linux/macOS
+*.bash text eol=lf
+*.zsh text eol=lf
+*.sh text eol=lf
+capture/hooks/bashrc text eol=lf
+capture/hooks/zdotdir/.zshrc text eol=lf
+*.cast text eol=lf
+*.jsonl text eol=lf
