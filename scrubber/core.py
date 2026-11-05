@@ -26,6 +26,15 @@ class PlaceholderMap:
         self._by_value: dict[str, str] = {}
         self._counts: dict[str, int] = {}
 
+    @classmethod
+    def continuing(cls, counts: dict[str, int]) -> "PlaceholderMap":
+        """A fresh map whose numbering continues after a recording's existing
+        placeholders (from its redaction.replaced counts), so text scrubbed
+        later never reuses <HOST_1> for a different host."""
+        m = cls()
+        m._counts = {k: int(v) for k, v in (counts or {}).items() if isinstance(v, int)}
+        return m
+
     def get(self, kind: str, value: str) -> str:
         ph = self._by_value.get(value)
         if ph is None:

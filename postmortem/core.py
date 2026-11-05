@@ -288,7 +288,20 @@ def postmortems(header: dict, events: Sequence[dict]) -> list[dict]:
     steps = build_steps(sid, events)
     corrected = apply_corrections(events)
     root_goals = {e["id"]: e.get("goal") for e in corrected if e.get("type") == "annotation" and e.get("parent") is None}
-    return [build_report(sid, ch, root_goals) for ch in find_chains(steps)]
+    said: dict[str, list[dict]] = {}
+    for e in events:  # the person's own answers to "why?" (KAN-58), quoted as they gave them
+        if e.get("type") == "explanation":
+            said.setdefault(e["target"], []).append(
+                {"question": e["question"], "text": e["answer"], "evidence": [evidence_id(sid, e["id"])]})
+    reports = []
+    for ch in find_chains(steps):
+        r = build_report(sid, ch, root_goals)
+        quotes = [q for st in ch.steps for q in said.get(st.ev["id"], [])]
+        if quotes:
+            r["explanations"] = quotes
+            r["evidence"] = sorted(set(r["evidence"]) | {e for q in quotes for e in q["evidence"]})
+        reports.append(r)
+    return reports
 
 
 # -- rendering ------------------------------------------------------------------
@@ -318,6 +331,9 @@ def render_markdown(r: dict) -> str:
     if r["lessons"]:
         out += ["", "### Lessons", ""]
         out += [f"- {x['text']}{_cite(x['evidence'])}" for x in r["lessons"]]
+    if r.get("explanations"):
+        out += ["", "### In the author's words", ""]
+        out += [f"- *{x['question']}* {x['text']}{_cite(x['evidence'])}" for x in r["explanations"]]
     return "\n".join(out).rstrip() + "\n"
 
 

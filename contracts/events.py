@@ -4,7 +4,7 @@ A session is one JSONL file, ``<name>.events.jsonl``:
 
 * line 1 is the ``session`` header;
 * every other line is one event: ``command``, ``resize``, ``file_edit``,
-  ``annotation`` or ``correction``.
+  ``annotation``, ``explanation`` or ``correction``.
 
 Every event has an ``id`` that is unique inside its session. Downstream
 outputs (tags, goal-tree nodes, answers, post-mortems, trajectories) cite
@@ -86,6 +86,16 @@ EVENT_FIELDS: dict[str, dict[str, tuple[tuple[type, ...], bool]]] = {
         "summary": (_OPT_STR, False),
         "parent": (_OPT_STR, False),  # goal-tree parent annotation id
         "model": (_OPT_STR, False),
+    },
+    # The person's own answer to "why?" about an event (KAN-58/59): typed now, Whisper transcripts later.
+    "explanation": {
+        "target": ((str,), True),  # event id the question was about
+        "question": ((str,), True),
+        "answer": ((str,), True),  # scrubbed before it is stored
+        "source": ((str,), True),  # typed | voice
+        "author": ((str,), True),
+        "t_created": (_OPT_STR, False),
+        "confidence": (_OPT_NUM, False),  # transcription confidence for voice answers
     },
     # A human fixing a model output (KAN-103). Never edits in place.
     "correction": {
