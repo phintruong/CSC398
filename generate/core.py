@@ -140,17 +140,17 @@ def to_dockerfile(procedure: Sequence[dict], base: str = "ubuntu:24.04", title: 
     out += [f"ARG {v}" for v in vs]
     if any(st.get("diff") for st in procedure):
         out.append("RUN apt-get update && apt-get install -y --no-install-recommends patch && rm -rf /var/lib/apt/lists/*")
-    cwd = None
-    copied = False
+    cwd = next((st["cwd"] for st in procedure if st.get("cwd")), None)
+    if cwd:
+        # the recorded steps ran inside a project directory: build with that project as the context,
+        # copied before any step so the first patch already has its file
+        out.append(f"WORKDIR {_vars_in_shell(cwd).replace('~', '/root')}")
+        out.append("COPY . .")
     for st in procedure:
         out.append(f"# Step {st['n']}" + (f": {st['why']}" if st.get("why") else "") + f"  [{_cite(st)}]")
         if st.get("cwd") and st["cwd"] != cwd and "command" in st:
             cwd = st["cwd"]
             out.append(f"WORKDIR {_vars_in_shell(cwd).replace('~', '/root')}")
-            if not copied:
-                out.append("# the recorded steps ran inside a project directory: build with that project as the context")
-                out.append("COPY . .")
-                copied = True
         if "command" in st:
             cmd = re.sub(r"^\s*sudo\s+", "", st["command"])
             head = _head(cmd)

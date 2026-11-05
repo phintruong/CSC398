@@ -34,4 +34,9 @@ python -m generate dockerfile fixtures/data/mock-python-venv.events.jsonl --base
 * `DRY_RUN=1` changes nothing. A missing variable stops the script with a clear message. A drifted file makes `patch` fail.
 * Dockerfile rules: venv → `ENV`, no `RUN source`, no docker-in-docker, systemctl commented out, `ARG` for placeholders.
 
-**Not done:** building the generated Dockerfiles in a sandbox (KAN-76). That needs base images from the network and a Docker daemon in CI.
+### Sandbox (KAN-76, `tests/test_sandbox.py`, skipped without Docker)
+
+* A generated **Dockerfile is built** (BuildKit heredoc patches included) and **run** with `--network none --read-only --cap-drop ALL --security-opt no-new-privileges --memory 256m --pids-limit 128`. The test checks that the patch applied literally (`$5` and backticks intact) and that `ENV`/`WORKDIR` from `export`/`cd` took effect.
+* A generated **script runs** as an unprivileged user in a throwaway container with no network, against a mounted copy of the project.
+* The project context is copied **before** the first step (fixed: a procedure that started with an edit used to patch a file that wasn't there yet).
+* The build may fetch the base image and `patch`. With no network the tests skip instead of failing. Test images are removed afterwards.
