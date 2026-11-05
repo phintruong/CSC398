@@ -8,7 +8,7 @@ from typing import Iterable, Sequence
 
 from .detect import HOST, IP, NAME, SECRET_KINDS, USER, Finding, detect_all, strip_controls
 
-REDACTION_VERSION = "scrub-0.1.0"
+REDACTION_VERSION = "scrub-0.2.0"  # 0.2: a shared PlaceholderMap spreads already-learned values
 
 # Kinds whose values, once learned anywhere, are replaced everywhere they occur.
 _PROPAGATE_MIN_LEN = 3
@@ -37,6 +37,10 @@ class PlaceholderMap:
 
     def lookup(self, value: str) -> str | None:
         return self._by_value.get(value)
+
+    def known(self) -> list[tuple[str, str]]:
+        """(kind, value) for every value already replaced. In memory only."""
+        return [(ph[1:].rsplit("_", 1)[0], v) for v, ph in self._by_value.items()]
 
     def counts(self) -> dict[str, int]:
         """Distinct values replaced, per kind. Safe to store and log."""
@@ -103,6 +107,12 @@ class Scrubber:
         per_text = [self._detect(t) + list(extra[i] if i < len(extra) else ()) for i, t in enumerate(texts)]
 
         learned: dict[str, Finding] = {}
+        # Values already replaced earlier with this map (e.g. a password typed
+        # at a prompt in the .cast) are replaced here too, so a shared map
+        # keeps diffs and hook events consistent with their recording.
+        for kind, v in self.map.known():
+            if len(v) >= _PROPAGATE_MIN_LEN and "\n" not in v:
+                learned[v] = Finding(0, 0, kind, v, 0 if kind in SECRET_KINDS else 2)
         for f in sorted((f for fs in per_text for f in fs), key=lambda f: f.priority):
             v = f.value
             if len(v) >= _PROPAGATE_MIN_LEN and v not in learned and "\n" not in v:

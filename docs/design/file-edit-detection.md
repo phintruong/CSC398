@@ -58,7 +58,7 @@ The events go in a sidecar file next to the recording, `<name>.edits.jsonl`, one
  "command": "sudo vim /etc/nginx/sites-available/default",
  "change": "modified", "is_config": true,
  "diff": "--- a/etc/nginx/sites-available/default\n+++ b/etc/nginx/sites-available/default\n@@ -36,7 +36,7 @@\n-\tlisten 80;\n+\tlisten 8080;\n",
- "binary": false, "truncated": false, "redaction": "scrub-0.1.0"}
+ "binary": false, "truncated": false, "redaction": "scrub-0.2.0"}
 ```
 
 `change` is one of `created | modified | deleted`. Paths inside home directories are scrubbed the same way as in the cast (`/home/<USER_1>/…`).

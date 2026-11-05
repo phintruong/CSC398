@@ -58,7 +58,7 @@ The scrubbed `.cast` header gets:
 
 ```json
 "provenance": {"source": "julia-laptop", "consent": "recorded-by-owner", "license": "CC-BY-SA-4.0"},
-"redaction": {"version": "scrub-0.1.0", "replaced": {"IP": 3, "PASSWORD": 1, "USER": 2}}
+"redaction": {"version": "scrub-0.2.0", "replaced": {"IP": 3, "PASSWORD": 1, "USER": 2}}
 ```
 
 `replaced` holds counts of distinct values only. A recording with no `redaction` block has **not** been scrubbed and must not be stored or used. Bump `REDACTION_VERSION` whenever detection changes, so we know which recordings to re-scrub.
