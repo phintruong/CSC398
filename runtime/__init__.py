@@ -23,6 +23,7 @@ Two wrappers every caller should use:
 
 from __future__ import annotations
 
+import re
 import time
 from typing import Callable, Protocol, runtime_checkable
 
@@ -46,10 +47,25 @@ class Guarded:
 
     def complete(self, task: str, evidence_ids: list[str], prompt: str) -> str:
         s = self._new()
-        clean = s.scrub_text(prompt)
-        if clean != prompt:
+        # prompts embed events as JSON: scan what the text means (a backslash-n is a newline),
+        # not its escaped spelling, so 'password: <backslash>nWelcome' isn't read as a password
+        text = _json_unescape(prompt)
+        clean = s.scrub_text(text)
+        if clean != text:
             raise UnscrubbedPrompt(f"prompt for {task!r} still contains: {sorted(s.map.counts())}")
         return self.model.complete(task, evidence_ids, prompt)
+
+
+_ESC = {'n': chr(10), 't': chr(9), 'r': chr(13), 'b': chr(8), 'f': chr(12), '"': '"', chr(92): chr(92), '/': '/'}
+_JSON_ESCAPE = re.compile(chr(92) * 2 + r'(u[0-9a-fA-F]{4}|["' + chr(92) * 2 + r'/bfnrt])')
+
+
+def _json_unescape(text: str) -> str:
+    def sub(m: re.Match) -> str:
+        c = m.group(1)
+        return chr(int(c[1:], 16)) if c.startswith('u') else _ESC[c]
+
+    return _JSON_ESCAPE.sub(sub, text)
 
 
 class Logged:

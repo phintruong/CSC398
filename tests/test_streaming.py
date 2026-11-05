@@ -132,3 +132,15 @@ def test_refuses_unscrubbed():
     h, _ = SESSIONS["mock-nginx-port"]
     with pytest.raises(ValueError):
         StreamingAnnotator(ReplayModel(), {**h, "redaction": {}})
+
+
+def test_guard_reads_json_escapes():
+    """Escaped newlines aren't secrets; secrets inside escaped JSON still are."""
+    secret = next(p.value for c in build_cases() for p in c.planted if p.kind == "TOKEN")
+    m = Guarded(ReplayModel())
+    false_positive = json.dumps({"output": "Enter password: \nWelcome to the MySQL monitor."})
+    with pytest.raises(KeyError):  # passes the guard, then misses the replay (no recorded reply): fine
+        m.complete("annotate", ["x#c1"], false_positive)
+    hidden = json.dumps({"output": json.dumps({"access_token": secret})})  # double-escaped
+    with pytest.raises(UnscrubbedPrompt):
+        m.complete("annotate", ["x#c1"], hidden)

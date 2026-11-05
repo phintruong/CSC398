@@ -10,6 +10,8 @@ from .detect import HOST, IP, NAME, SECRET_KINDS, USER, Finding, detect_all, str
 
 REDACTION_VERSION = "scrub-0.2.0"  # 0.2: a shared PlaceholderMap spreads already-learned values
 
+_ONLY_PLACEHOLDERS = re.compile(r"\s*(?:<[A-Z]+(?:_[A-Z]+)*_\d+>[\s:@/.,;'\"]*)+")
+
 # Kinds whose values, once learned anywhere, are replaced everywhere they occur.
 _PROPAGATE_MIN_LEN = 3
 _WORDY_KINDS = frozenset({USER, HOST, NAME, IP})
@@ -90,7 +92,9 @@ class Scrubber:
 
     def _detect(self, raw: str) -> list[Finding]:
         clean, index = strip_controls(raw)
-        found = [_to_raw(f, index) for f in detect_all(clean)]
+        # already-scrubbed values (`-p<PASSWORD_1>`, a PEM body of `<PRIVATE_KEY_1>`) are not secrets:
+        # scrubbing must be idempotent, or the prompt guard refuses every scrubbed session
+        found = [_to_raw(f, index) for f in detect_all(clean) if not _ONLY_PLACEHOLDERS.fullmatch(f.value)]
         for term in self.extra_terms:
             for m in re.finditer(r"(?i)(?<![A-Za-z0-9])" + re.escape(term) + r"(?![A-Za-z0-9])", raw):
                 found.append(Finding(m.start(), m.end(), NAME, term, 1))

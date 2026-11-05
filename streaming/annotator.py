@@ -113,6 +113,7 @@ class StreamingAnnotator:
         self.tree = GoalTree()
         self._n = 0
         self.failures = 0
+        self.refused = 0  # prompts the guard refused to send
         self._held: dict | None = None
 
     def feed(self, ev: dict) -> list[dict]:
@@ -146,6 +147,12 @@ class StreamingAnnotator:
             reply = self.model.complete("annotate", [evidence_id(self.sid, ev["id"])], prompt)
         except KeyError:  # no reply (replay miss): skip, keep streaming
             self.failures += 1
+            self.history.append(ev)
+            return []
+        except RuntimeError as e:  # e.g. runtime.UnscrubbedPrompt: never send it, never stop the stream
+            if type(e).__name__ != "UnscrubbedPrompt":
+                raise
+            self.refused += 1
             self.history.append(ev)
             return []
         labels = parse_labels(reply)

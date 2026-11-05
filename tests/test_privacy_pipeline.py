@@ -108,3 +108,16 @@ def test_unscrubbed_session_is_rejected_by_validation():
 
     hdr = {"type": "session", "schema": "events-v1", "id": "x", "origin": "live", "provenance": {}, "redaction": {}}
     assert any("not scrubbed" in e for e in validate_session_header(hdr))
+
+
+@pytest.mark.parametrize("case", CASES, ids=[c.name for c in CASES])
+def test_scrubbing_is_idempotent(case):
+    """Scrubbing scrubbed text changes nothing, so the prompt guard accepts scrubbed sessions."""
+    from capture import import_cast
+    from scrubber import Scrubber
+
+    _, evs, clean_cast, _ = import_cast(case.cast, source="t", consent="c", license="l", extra_terms=case.extra_terms)
+    for e in evs:
+        for k in ("command", "output"):
+            if e.get(k):
+                assert Scrubber().scrub_text(e[k]) == e[k], f"{case.name}: re-scrubbing changed {k}"
