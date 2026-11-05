@@ -31,14 +31,39 @@
 - Individual idea pitches: **Sunday/Monday**
 - Choose a direction and write the spec sheet, then present to the mentors: **next Thursday**
 
-## Capture & privacy work (Group 1)
-| Ticket | What | Where |
-|---|---|---|
-| KAN-33 | Scrubbing design + planted-secret acceptance test | [docs/design/scrubbing.md](docs/design/scrubbing.md), [tests/planted_set.py](tests/planted_set.py) |
-| KAN-34 | Scrubber: secrets, IPs, hosts, users, paths → consistent placeholders | [scrubber/](scrubber) |
-| KAN-29 | File-edit detection design + acceptance test | [docs/design/file-edit-detection.md](docs/design/file-edit-detection.md), [tests/test_file_edit_acceptance.py](tests/test_file_edit_acceptance.py) |
+## What's in this repo
+
+Everything reads and writes **event schema v1** ([contracts/events.py](contracts/events.py)): one `*.events.jsonl` per session. Line 1 is the `session` header, followed by `command`, `resize`, `file_edit`, `annotation` and `correction` events. Outputs cite events by evidence id, `session#event`. The only dependency is pytest, for the tests.
+
+| Ticket(s) | What | Code | Docs |
+|---|---|---|---|
+| KAN-102 | Event schema v1, validator, evidence ids | [contracts/](contracts) | [contracts/events.py](contracts/events.py) |
+| KAN-33, KAN-34 | Scrubber: secrets, IPs, hosts, users, paths become consistent placeholders | [scrubber/](scrubber) | [scrubbing.md](docs/design/scrubbing.md) |
+| KAN-29, KAN-30 | File-edit detection: `file_edit` events with unified diffs, config flag | [fileedit/](fileedit) | [file-edit-detection.md](docs/design/file-edit-detection.md) |
+| KAN-26, KAN-35 | Live capture (bash/zsh hooks) and `.cast` importer, scrubbed at capture with one placeholder map | [capture/](capture) | [capture.md](docs/design/capture.md) |
+| KAN-36 | Privacy test: planted secrets never reach storage, logs or prompts | [tests/test_privacy_pipeline.py](tests/test_privacy_pipeline.py) | [scrubbing.md §5](docs/design/scrubbing.md) |
+| KAN-106 | Mock sessions + recorded model replies (`ReplayModel`) | [fixtures/](fixtures) | [fixtures/README.md](fixtures/README.md) |
+| KAN-108 | Contract tests (incl. broken recordings, fuzzing) | [tests/test_contracts.py](tests/test_contracts.py) | |
+| KAN-104 | Runtime interface for every model call, plus prompt guard and text-free logging | [runtime/](runtime) | [streaming-annotation.md §1](docs/design/streaming-annotation.md) |
+| KAN-41, KAN-42, KAN-43 | Streaming annotation from past context only, live goal tree | [streaming/](streaming) | [streaming-annotation.md](docs/design/streaming-annotation.md) |
+| KAN-77, KAN-78 | Incident post-mortems (timeline, root cause, fix, lessons; all cited) | [postmortem/](postmortem) | [postmortem.md](docs/design/postmortem.md) |
+| KAN-103, KAN-81, KAN-82 | Correction format; one training-record format; SFT + preference export | [trainrec/](trainrec) | [training-records.md](docs/design/training-records.md) |
+| KAN-46 | Embed + align repeated runs, canonical procedures | [procedures/](procedures) | [procedures.md](docs/design/procedures.md) |
+| KAN-62 | Benchmark harness + description rubric (CI exit code) | [bench/](bench) | [benchmark.md](docs/design/benchmark.md) |
+| KAN-69, KAN-71 | Retrieval eval format, first 20 queries, recall@k/MRR, BM25 baseline | [retrieval_eval/](retrieval_eval) | [retrieval_eval/README.md](retrieval_eval/README.md) |
+| KAN-111, KAN-115 | Local dashboard: Sessions home, Privacy & cloud settings | [dashboard/](dashboard) | |
 
 ```bash
-pip install pytest && pytest                     # unit + acceptance tests (planted-secret recall: 52/52)
-python -m scrubber in.cast -o out.cast --source S --consent C --license L [--term CustomerName]
+pip install pytest && pytest                      # ~300 tests
+python -m capture import old.cast -o old.events.jsonl --source S --consent C --license L
+eval "$(python -m capture start --dir runs/s1 --source S --consent C --license L)"   # ... work ...
+python -m capture stop --dir runs/s1
+python -m postmortem fixtures/data/mock-nginx-port.events.jsonl
+python -m procedures merge fixtures/data/mock-nginx-port*.events.jsonl
+python -m trainrec export fixtures/data -o records.jsonl
+python -m bench baseline --gold fixtures/data --out runs/pred && python -m bench run --gold fixtures/data --pred runs/pred
+python -m retrieval_eval
+python -m dashboard --sessions fixtures/data      # http://127.0.0.1:8398
 ```
+
+**Still blocked on things outside this repo:** the real Model 0/1 (baselines KAN-61, streaming quality KAN-44), the mentors' labelled test set and recordings (KAN-28, KAN-70), and the search index from Group 6 (KAN-71 against real search). Live streaming into tagging (KAN-27) needs a long-running capture process; see [capture.md](docs/design/capture.md).
