@@ -1,0 +1,46 @@
+[
+  {
+    "n": 1,
+    "action": "`sudo sed -i 's/listen 8080 default_server$/listen 8080 default_server;/' default`",
+    "support": 1.0,
+    "evidence": [
+      "imp-61f28cd04a26#c3"
+    ],
+    "cwd": "/etc/nginx/sites-available",
+    "command": "sudo sed -i 's/listen 8080 default_server$/listen 8080 default_server;/' default",
+    "why": "Ran `sudo sed -i 's/listen 8080 default_server$/listen 8080 default_server;/' default`."
+  },
+  {
+    "n": 2,
+    "action": "`sudo nginx -t`",
+    "support": 1.0,
+    "evidence": [
+      "imp-61f28cd04a26#c4"
+    ],
+    "cwd": "/etc/nginx/sites-available",
+    "command": "sudo nginx -t",
+    "why": "Ran `sudo nginx -t`."
+  },
+  {
+    "n": 3,
+    "action": "`sudo systemctl reload nginx`",
+    "support": 1.0,
+    "evidence": [
+      "imp-61f28cd04a26#c5"
+    ],
+    "cwd": "/etc/nginx/sites-available",
+    "command": "sudo systemctl reload nginx",
+    "why": "Ran `sudo systemctl reload nginx`."
+  },
+  {
+    "n": 4,
+    "action": "`curl -sI http://localhost:8080 | head -1`",
+    "support": 1.0,
+    "evidence": [
+      "imp-61f28cd04a26#c6"
+    ],
+    "cwd": "/etc/nginx/sites-available",
+    "command": "curl -sI http://localhost:8080 | head -1",
+    "why": "Ran `curl -sI http://localhost:8080 | head -1`."
+  }
+]

@@ -1,5 +1,5 @@
 """python -m bench run --gold DIR --pred DIR [-o report.json] [--rules rules.json]
-python -m bench baseline --gold DIR --out DIR      # streaming annotator + replay model as a reference prediction
+python -m bench baseline --gold DIR --out DIR [--model replay|rules]   # reference predictions
 
 Exit status 1 when a pass rule fails (so CI can gate on it, KAN-63)."""
 
@@ -26,16 +26,21 @@ def main(argv: list[str] | None = None) -> int:
     b = sub.add_parser("baseline")
     b.add_argument("--gold", type=Path, required=True)
     b.add_argument("--out", type=Path, required=True)
+    b.add_argument("--model", choices=["replay", "rules"], default="replay",
+                   help="replay = recorded replies (upper bound on fixtures); rules = no-model floor (runtime.rules)")
     a = p.parse_args(argv)
 
     if a.cmd == "baseline":
         from fixtures import ReplayModel
+        from runtime.rules import RuleAnnotator
         from streaming import annotate_session
+
+        model = ReplayModel() if a.model == "replay" else RuleAnnotator()
 
         a.out.mkdir(parents=True, exist_ok=True)
         for sid, (h, evs) in load_dir(a.gold).items():
             base = [e for e in evs if e["type"] not in ("annotation", "correction")]
-            anns, _ = annotate_session(ReplayModel(), h, base)
+            anns, _ = annotate_session(model, h, base)
             (a.out / f"{sid}.events.jsonl").write_text(dumps_session(h, base + anns), encoding="utf-8")
         return 0
 

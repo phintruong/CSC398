@@ -1,0 +1,56 @@
+[
+ {
+  "task": "annotate",
+  "evidence": [
+   "imp-61f28cd04a26#c1"
+  ],
+  "prompt_chars": 443,
+  "reply_chars": 0,
+  "ok": false
+ },
+ {
+  "task": "annotate",
+  "evidence": [
+   "imp-61f28cd04a26#c2"
+  ],
+  "prompt_chars": 745,
+  "reply_chars": 194,
+  "ok": true
+ },
+ {
+  "task": "annotate",
+  "evidence": [
+   "imp-61f28cd04a26#c3"
+  ],
+  "prompt_chars": 1147,
+  "reply_chars": 175,
+  "ok": true
+ },
+ {
+  "task": "annotate",
+  "evidence": [
+   "imp-61f28cd04a26#c4"
+  ],
+  "prompt_chars": 1595,
+  "reply_chars": 112,
+  "ok": true
+ },
+ {
+  "task": "annotate",
+  "evidence": [
+   "imp-61f28cd04a26#c5"
+  ],
+  "prompt_chars": 1862,
+  "reply_chars": 134,
+  "ok": true
+ },
+ {
+  "task": "annotate",
+  "evidence": [
+   "imp-61f28cd04a26#c6"
+  ],
+  "prompt_chars": 2179,
+  "reply_chars": 137,
+  "ok": true
+ }
+]

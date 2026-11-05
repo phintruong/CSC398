@@ -40,3 +40,13 @@ python -m bench run --gold fixtures/data --pred runs/baseline -o report.json [--
 ## Current numbers on the fixtures
 
 The replay baseline matches the fixtures exactly, so segmentation and tagging are 1.0 by construction. The rubric scores the fixture summaries at **0.86**. It flags two unsupported claims ("PEP 668", "390% CPU") and a handful of vague summaries ("Config test passes."). That is useful feedback on the fixtures themselves.
+
+## The no-model floor (and what it says about the rules)
+
+`python -m bench baseline --model rules` annotates with `runtime.rules.RuleAnnotator`, which uses no model: exit codes and error words decide the result, and template summaries quote the command. On the fixtures it gets **result macro F1 0.94, mistake F1 0.94 and description rubric 0.92**, and it passes every placeholder rule.
+
+Two takeaways for KAN-64:
+
+1. **Pass rules must be relative to the rule floor, measured on real data**, e.g. "beat `rules` by ≥ X on the dev set". Absolute thresholds set on the fixtures mean nothing, because exit codes give the answer away there. In imported DocStream recordings exit codes are unknown, so the floor will be much lower.
+2. **The description rubric can be gamed by templates.** Quoting the command is trivially faithful and specific. Before it gates anything, add a check for *teaching value* (does the summary say why, not just what?). That check needs either a judge model or human ratings on a sample.
+
