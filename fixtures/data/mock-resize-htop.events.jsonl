@@ -1,0 +1,9 @@
+{"type": "session", "schema": "events-v1", "id": "mock-resize-htop", "origin": "mock", "started": "2026-10-20T15:00:00+00:00", "shell": "bash", "term": {"cols": 120, "rows": 32}, "provenance": {"source": "fixtures", "consent": "synthetic", "license": "CC0-1.0"}, "redaction": {"version": "synthetic", "replaced": {}}}
+{"type": "command", "id": "c1", "t": 3.0, "t_end": 4.0, "duration": 1.0, "command": "uptime", "cwd": "/home/<USER_1>", "exit_code": 0, "output": " 15:02:11 up 12 days,  3:41,  1 user,  load average: 3.92, 3.80, 3.71", "output_truncated": false, "term": {"cols": 120, "rows": 32}}
+{"type": "annotation", "id": "a2", "target": "c1", "goal": "Find out why the machine is slow", "tool": "uptime", "result": "success", "mistake": false, "summary": "Load is high (~3.9).", "parent": null, "model": "mock-model-1"}
+{"type": "resize", "id": "r3", "t": 4.5, "cols": 200, "rows": 50}
+{"type": "command", "id": "c4", "t": 7.5, "t_end": 37.5, "duration": 30.0, "command": "htop", "cwd": "/home/<USER_1>", "exit_code": 0, "output": "", "output_truncated": false, "term": {"cols": 200, "rows": 50}}
+{"type": "annotation", "id": "a5", "target": "c4", "goal": "Find the busy process", "tool": "htop", "result": "success", "mistake": false, "summary": "A runaway python worker uses 390% CPU.", "parent": "a2", "model": "mock-model-1"}
+{"type": "resize", "id": "r6", "t": 38.0, "cols": 120, "rows": 32}
+{"type": "command", "id": "c7", "t": 41.0, "t_end": 42.0, "duration": 1.0, "command": "systemctl restart report-worker", "cwd": "/home/<USER_1>", "exit_code": 0, "output": "", "output_truncated": false, "term": {"cols": 120, "rows": 32}}
+{"type": "annotation", "id": "a8", "target": "c7", "goal": "Stop the runaway process", "tool": "systemctl", "result": "success", "mistake": false, "summary": "Restart the worker service.", "parent": "a2", "model": "mock-model-1"}

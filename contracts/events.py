@@ -161,7 +161,7 @@ def validate_event(ev: Any) -> list[str]:
     if not isinstance(ev, dict):
         return ["event: not an object"]
     kind = ev.get("type")
-    if kind not in EVENT_TYPES:
+    if not isinstance(kind, str) or kind not in EVENT_TYPES:
         return [f"event: unknown type {kind!r}"]
     where = f"{kind} {ev.get('id', '?')}"
     errs = _check(ev, {"id": ((str,), True)}, where) + _check(ev, EVENT_FIELDS[kind], where)
