@@ -50,11 +50,37 @@ def _shell_name(explicit: str | None) -> str:
     return "zsh" if "zsh" in name else "bash"
 
 
+def _spawn_daemon(a: argparse.Namespace, shell: str, cols: int, rows: int) -> None:
+    """Start `python -m capture daemon` detached from this shell and wait until it answers."""
+    from .daemon import wait_until_running
+
+    args = [sys.executable, "-m", "capture", "daemon", "--dir", str(a.dir), "--shell", shell,
+            "--source", a.source, "--consent", a.consent, "--license", a.license,
+            "--cols", str(cols), "--rows", str(rows)] + [x for t in _terms(a) for x in ("--term", t)]
+    if a.annotate:
+        args += ["--annotate", a.annotate]
+    env = {**os.environ, "PYTHONPATH": os.pathsep.join(filter(None, [str(REPO), os.environ.get("PYTHONPATH")]))}
+    kw: dict = {"stdin": subprocess.DEVNULL, "stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL, "env": env}
+    if os.name == "nt":
+        kw["creationflags"] = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
+    else:
+        kw["start_new_session"] = True
+    subprocess.Popen(args, **kw)
+    if not wait_until_running(a.dir):
+        raise SystemExit("capture daemon did not start")
+
+
 def cmd_start(a: argparse.Namespace) -> int:
     shell = _shell_name(a.shell)
     cols, rows = shutil.get_terminal_size((0, 0))
-    s = Session.start(a.dir, source=a.source, consent=a.consent, license=a.license,
-                      extra_terms=_terms(a), shell=shell, cols=cols or None, rows=rows or None)
+    if a.daemon:
+        _spawn_daemon(a, shell, cols, rows)
+        sid = "(daemon)"
+        raw_cast = Path(a.dir) / ".spool" / "raw.cast"
+    else:
+        s = Session.start(a.dir, source=a.source, consent=a.consent, license=a.license,
+                          extra_terms=_terms(a), shell=shell, cols=cols or None, rows=rows or None)
+        sid, raw_cast = s.state["id"], s.raw_cast_path
     d = str(Path(a.dir).resolve())
     lines = [
         f"export CAPTURE_DIR={shlex.quote(d)}",
@@ -63,12 +89,21 @@ def cmd_start(a: argparse.Namespace) -> int:
         f"source {shlex.quote(str(HOOKS / ('capture.' + shell)))}",
     ]
     print("\n".join(lines))
-    print(f"# capture {s.state['id']} started; raw cast path for asciinema: {s.raw_cast_path}", file=sys.stderr)
+    print(f"# capture {sid} started; raw cast path for asciinema: {raw_cast}", file=sys.stderr)
     return 0
 
 
 def cmd_hook(a: argparse.Namespace) -> int:
     try:
+        from .daemon import running, send
+
+        if running(a.dir):
+            if a.phase == "pre":
+                send(a.dir, {"op": "pre", "cmd": a.cmd, "cwd": a.cwd})
+            else:
+                send(a.dir, {"op": "post", "exit": a.exit, "jobs": (a.jobs or "").split(),
+                             "cols": a.cols, "rows": a.rows})
+            return 0
         s = Session.load(a.dir)
         if a.phase == "pre":
             s.preexec(a.cmd, a.cwd)
@@ -80,9 +115,35 @@ def cmd_hook(a: argparse.Namespace) -> int:
 
 
 def cmd_stop(a: argparse.Namespace) -> int:
-    out = Session.load(a.dir).stop(cast_path=a.cast)
+    from .daemon import running, send
+
+    if running(a.dir):
+        reply = send(a.dir, {"op": "stop"}, timeout=120)
+        if not reply.get("ok"):
+            print(f"stop failed: {reply.get('error')}", file=sys.stderr)
+            return 1
+        out = Path(reply["events"])
+    else:
+        out = Session.load(a.dir).stop(cast_path=a.cast)
     header, events = loads_session(out.read_text(encoding="utf-8"))
     print(json.dumps({"events": str(out), "count": len(events), "replaced": header["redaction"]["replaced"]}))
+    return 0
+
+
+def cmd_daemon(a: argparse.Namespace) -> int:
+    """Foreground daemon (start --daemon runs this detached)."""
+    from .daemon import CaptureDaemon, serve
+
+    s = Session.start(a.dir, source=a.source, consent=a.consent, license=a.license, extra_terms=a.term,
+                      shell=a.shell, cols=a.cols or None, rows=a.rows or None, memory=True)
+    factory = None
+    if a.annotate == "rules":
+        from runtime import Guarded
+        from runtime.rules import RuleAnnotator
+        from streaming import StreamingAnnotator
+
+        factory = lambda header: StreamingAnnotator(Guarded(RuleAnnotator()), header, model_name="rules-v1")  # noqa: E731
+    serve(CaptureDaemon(s, factory))
     return 0
 
 
@@ -149,8 +210,19 @@ def main(argv: list[str] | None = None) -> int:
     st = sub.add_parser("start", help="start a capture; prints shell lines to eval")
     st.add_argument("--dir", required=True)
     st.add_argument("--shell", choices=["bash", "zsh"])
+    st.add_argument("--daemon", action="store_true", help="keep state in memory and stream scrubbed events live (KAN-27)")
+    st.add_argument("--annotate", choices=["rules"], help="with --daemon: annotate events as they stream")
     _prov(st)
     st.set_defaults(fn=cmd_start)
+
+    dm = sub.add_parser("daemon", help="run the capture daemon in the foreground")
+    dm.add_argument("--dir", required=True)
+    dm.add_argument("--shell", choices=["bash", "zsh"])
+    dm.add_argument("--cols", type=int, default=0)
+    dm.add_argument("--rows", type=int, default=0)
+    dm.add_argument("--annotate", choices=["rules"])
+    _prov(dm)
+    dm.set_defaults(fn=cmd_daemon)
 
     hk = sub.add_parser("hook", help="called by the shell hooks")
     hk.add_argument("phase", choices=["pre", "post"])

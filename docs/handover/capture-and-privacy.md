@@ -71,7 +71,7 @@ python -m capture stop
 
 1. **Real recordings (KAN-28, KAN-32):** everything has been tested on synthetic recordings only. The integration checks on the mentors' real DocStream recordings still need running, and they need the recordings and permissions (KAN-101). Expect prompt-shape misses in the importer; see the `--prompt` row above.
 2. **zsh hooks are untested**, because no zsh was available. Run `tests/test_capture.py::test_bash_hooks_end_to_end`'s steps by hand in zsh.
-3. **Raw spool on disk between hooks.** A crash leaves unscrubbed data in `.spool/` (mode 0700) until the next `stop`. The fix is a small long-running capture process that keeps state in memory. That same process would also let events stream into tagging live (KAN-27).
+3. **Raw spool on disk between hooks (spool mode only).** A crash leaves unscrubbed data in `.spool/` (mode 0700) until the next `stop`. Use `start --daemon` to keep state in memory. Daemon mode also streams scrubbed events live (KAN-27); see `capture.md`. Its one limit: a value recognised as secret only later can't be pulled back from events already streamed.
 4. **Remote edits** (`ssh` then vim on the server) aren't captured. The options are in `docs/design/file-edit-detection.md` §9.
 5. **Full-screen programs:** secrets shown only on a redrawn screen (vim, less) can slip past the stream-based scrubber. Sessions that include these shouldn't be used for training until a render-then-scan pass exists (`scrubbing.md` §6).
 6. **Team decisions still pending:** the list in `scrubbing.md` §7 (private IP ranges, the domain allowlist, consistency across recordings, the consent and license vocabulary).

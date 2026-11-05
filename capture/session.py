@@ -52,9 +52,10 @@ def _private_dir(p: Path) -> None:
 
 
 class Session:
-    def __init__(self, directory: str | os.PathLike, state: dict[str, Any]) -> None:
+    def __init__(self, directory: str | os.PathLike, state: dict[str, Any], memory: bool = False) -> None:
         self.dir = Path(directory)
         self.state = state
+        self.memory = memory  # True inside the capture daemon: state never touches disk
 
     # -- lifecycle ------------------------------------------------------------
 
@@ -79,9 +80,10 @@ class Session:
         cols: int | None = None,
         rows: int | None = None,
         now: float | None = None,
+        memory: bool = False,
     ) -> "Session":
         d = Path(directory)
-        if (d / SPOOL / STATE).exists():
+        if (d / SPOOL / STATE).exists() or (d / SPOOL / "daemon.json").exists():
             raise FileExistsError(f"a capture is already running in {d}")
         _private_dir(d / SPOOL)
         started = time.time() if now is None else now
@@ -99,7 +101,7 @@ class Session:
             "known_jobs": [],
             "events": [],
         }
-        s = cls(d, state)
+        s = cls(d, state, memory)
         s._save()
         return s
 
@@ -112,6 +114,8 @@ class Session:
         return cls(d, json.loads(path.read_text(encoding="utf-8")))
 
     def _save(self) -> None:
+        if self.memory:
+            return
         tmp = self.spool / (STATE + ".tmp")
         tmp.write_text(json.dumps(self.state), encoding="utf-8")
         os.replace(tmp, self.spool / STATE)
@@ -205,7 +209,7 @@ class Session:
 
     # -- stop: scrub everything, write, delete the spool ------------------------
 
-    def stop(self, cast_path: str | os.PathLike | None = None, t: float | None = None) -> Path:
+    def stop(self, cast_path: str | os.PathLike | None = None, t: float | None = None, scrubber: Scrubber | None = None) -> Path:
         now = self._now(t)
         for s in self.state["suspended"]:
             self._finish_edits(s["pending"], now)
@@ -220,7 +224,7 @@ class Session:
             self.state["pending"] = None
 
         cast = Path(cast_path) if cast_path else (self.raw_cast_path if self.raw_cast_path.exists() else None)
-        scrubber = Scrubber(self.state["extra_terms"])
+        scrubber = scrubber or Scrubber(self.state["extra_terms"])
         prov = self.state["provenance"]
         events = [dict(e) for e in self.state["events"]]
         start_term = None

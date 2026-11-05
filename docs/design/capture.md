@@ -35,7 +35,20 @@ python -m capture record --dir runs/s1 --source … --consent … --license …
 
 Hooks are separate processes, so raw state (commands, file snapshots, the raw cast) sits in `<dir>/.spool/` (mode 0700) between calls. Only `stop` reads it. `stop` scrubs **everything with one placeholder map**: the cast first, so passwords typed at prompts are learned, then commands, cwds, outputs and diffs. It writes the scrubbed files and **deletes the spool**. Nothing outside the spool is written before scrubbing. `session.cast` and `session.events.jsonl` carry `redaction` and `provenance`.
 
-**Open point:** a crash leaves the spool behind until the next `stop`. If the team wants zero unscrubbed bytes on disk, the next step is a small capture daemon that keeps state in memory (this also makes streaming to tagging, KAN-27, easier).
+**Open point (spool mode):** a crash leaves the spool behind until the next `stop`. Daemon mode, below, avoids this.
+
+### Daemon mode: live streaming (KAN-27)
+
+```bash
+eval "$(python -m capture start --daemon [--annotate rules] --dir runs/s1 --source … --consent … --license …)"
+```
+
+`start --daemon` launches a detached `python -m capture daemon`, which holds the session state, file snapshots and **the placeholder map in memory**. The hooks don't change: `hook pre|post` sees `.spool/daemon.json` (port + random token, mode 0600) and sends the event to the daemon on 127.0.0.1 instead of writing a spool.
+
+* **Streaming:** each closed command is scrubbed straight away with the session's map. Its output comes from the part of the raw cast recorded since the last command, scrubbed with the same map. The scrubbed event is appended to `live.events.jsonl` (schema v1; the header has `redaction.streaming: true`), which tagging and the goal tree can tail.
+* **`--annotate rules`** also feeds every event to an in-process `StreamingAnnotator` (via `runtime.Guarded`), and the annotations go into the same live file. That is the "no manual steps" path into tagging and the goal tree. Swap in Model 1 once it exists.
+* **On disk while running:** only `daemon.json` and asciinema's own `raw.cast`. `stop` writes `session.events.jsonl` and `session.cast` with the same map, so placeholders match what was streamed, and then deletes the spool.
+* **Limit:** a value that is only recognised as secret *later* (for example typed in a command, then entered at a password prompt) can't be pulled back from events already streamed. The final files are re-scrubbed and don't have this problem. The prompt guard still applies to anything sent to a model.
 
 ## Importer
 
