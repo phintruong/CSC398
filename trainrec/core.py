@@ -95,7 +95,8 @@ def _provenance(header: dict, ann: dict, evidence: list[str], authors: list[str]
     return {"session": header["id"], "evidence": evidence, "annotation": ann["id"],
             "redaction": header["redaction"]["version"], "consent": prov.get("consent"),
             "license": prov.get("license"), "source": prov.get("source"),
-            "label_source": "human-corrected" if ann.get("corrected_fields") else (ann.get("model") or "unknown"),
+            "label_source": ("human-corrected" if ann.get("changed_fields")
+                             else "human-reviewed" if ann.get("reviewed") else (ann.get("model") or "unknown")),
             "correction_authors": authors}
 
 

@@ -40,7 +40,9 @@ def apply_corrections(events: Sequence[dict]) -> list[dict]:
         if e.get("type") == "annotation":
             fixes = {f: v for (t, f), (_, _, v) in latest.items() if t == e["id"]}
             if fixes:
-                e = {**e, **fixes, "corrected_fields": sorted(fixes)}
+                changed = sorted(f for f, v in fixes.items() if f != "reviewed" and e.get(f) != v)
+                # a person looked at it; "changed_fields" are the ones they actually changed
+                e = {**e, **fixes, "corrected_fields": sorted(fixes), "changed_fields": changed, "reviewed": True}
         out.append(e)
     return out
 

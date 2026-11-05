@@ -18,7 +18,16 @@ A person fixing a model output never edits the annotation. They append a `correc
 * `target` is an annotation id and `field` is one annotation field (`goal`, `tool`, `result`, `mistake`, `summary`, `parent`).
 * **The latest correction per (target, field) wins**, ordered by `t_created`, then file order. Older corrections stay in the file as history.
 * Readers apply corrections with `postmortem.core.apply_corrections`, which every consumer shares. The originals stay intact, and that's what makes preference pairs possible.
-* `author` is a reviewer handle, not a real name. The Session review screen (KAN-112) writes these events.
+* `author` is a reviewer handle, not a real name. The Session review screen (KAN-112) writes these events, and so does the CLI below.
+* **Accepting** a label without changing it writes a `correction` with `field: "reviewed", new: true`, so "a person checked this" is recorded rather than assumed. After corrections are applied, an annotation carries `reviewed: true` and `changed_fields` (the fields the person actually changed). Training records label it `human-corrected` (something changed), `human-reviewed` (accepted as is) or the model name.
+
+```bash
+python -m review list    session.events.jsonl --unreviewed --mistakes
+python -m review correct session.events.jsonl a6 --author rev-1 --set summary="..." --set mistake=true
+python -m review accept  session.events.jsonl a7 a8 --author rev-1
+```
+
+This also works on a capture daemon's `live.events.jsonl` while the session is running (KAN-39). Input is validated (`result` values, booleans, an existing `parent`), and a bad correction writes nothing.
 
 ## 2. One training-record format (`trainrec-v1`)
 
