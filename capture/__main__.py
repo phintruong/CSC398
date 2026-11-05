@@ -38,6 +38,13 @@ def _prov(p: argparse.ArgumentParser) -> None:
     p.add_argument("--term", action="append", default=[], help="extra name to scrub (repeatable)")
 
 
+def _terms(a: argparse.Namespace) -> list[str]:
+    """--term values plus the always-scrub list from the Privacy & cloud settings (KAN-115)."""
+    from dashboard import settings
+
+    return list(dict.fromkeys(a.term + settings.load()["extra_terms"]))
+
+
 def _shell_name(explicit: str | None) -> str:
     name = explicit or Path(os.environ.get("SHELL", "bash")).name
     return "zsh" if "zsh" in name else "bash"
@@ -47,7 +54,7 @@ def cmd_start(a: argparse.Namespace) -> int:
     shell = _shell_name(a.shell)
     cols, rows = shutil.get_terminal_size((0, 0))
     s = Session.start(a.dir, source=a.source, consent=a.consent, license=a.license,
-                      extra_terms=a.term, shell=shell, cols=cols or None, rows=rows or None)
+                      extra_terms=_terms(a), shell=shell, cols=cols or None, rows=rows or None)
     d = str(Path(a.dir).resolve())
     lines = [
         f"export CAPTURE_DIR={shlex.quote(d)}",
@@ -85,7 +92,7 @@ def cmd_record(a: argparse.Namespace) -> int:
         print("asciinema not found; use `start` + `stop` instead", file=sys.stderr)
         return 2
     shell = _shell_name(a.shell)
-    s = Session.start(a.dir, source=a.source, consent=a.consent, license=a.license, extra_terms=a.term, shell=shell)
+    s = Session.start(a.dir, source=a.source, consent=a.consent, license=a.license, extra_terms=_terms(a), shell=shell)
     env = {
         **os.environ,
         "CAPTURE_DIR": str(Path(a.dir).resolve()),
@@ -108,7 +115,7 @@ def cmd_record(a: argparse.Namespace) -> int:
 def cmd_import(a: argparse.Namespace) -> int:
     text = a.input.read_text(encoding="utf-8", errors="replace")
     header, events, cast_text, scrubber = import_cast(
-        text, source=a.source, consent=a.consent, license=a.license, extra_terms=a.term, prompt_regex=a.prompt
+        text, source=a.source, consent=a.consent, license=a.license, extra_terms=_terms(a), prompt_regex=a.prompt
     )
     errs = validate_session(header, events)
     if errs:
