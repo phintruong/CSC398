@@ -24,7 +24,20 @@ def main(argv: list[str] | None = None) -> int:
     ex.add_argument("-o", "--output", type=Path, required=True)
     ex.add_argument("--kind", choices=["sft", "pref", "both"], default="both")
     ex.add_argument("--context", type=int, default=CONTEXT_EVENTS)
+    ds = sub.add_parser("dataset", help="session-level train/dev/test splits in chat SFT and DPO format (KAN-83)")
+    ds.add_argument("sessions", type=Path)
+    ds.add_argument("-o", "--output", type=Path, required=True)
+    ds.add_argument("--dev", type=float, default=0.1)
+    ds.add_argument("--test", type=float, default=0.1)
+    ds.add_argument("--salt", default="v1", help="change only to reshuffle every split on purpose")
     a = p.parse_args(argv)
+
+    if a.cmd == "dataset":
+        from .dataset import build
+
+        m = build(a.sessions.glob("*.events.jsonl"), a.output, a.dev, a.test, a.salt)
+        print(json.dumps({k: m[k] for k in ("splits", "skipped", "duplicates_dropped")}), file=sys.stderr)
+        return 0
 
     records, skipped = [], []
     for path in sorted(a.sessions.glob("*.events.jsonl")):

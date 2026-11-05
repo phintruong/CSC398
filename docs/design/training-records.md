@@ -71,3 +71,18 @@ python -m trainrec export fixtures/data -o records.jsonl [--kind sft|pref|both] 
 1. Do the mentors' correction API records (Jack's old API, KAN-65) map onto `correction` events one to one, or do we need an importer?
 2. Should SFT records exclude labels from `mock-model-*` and other unreviewed model output, training only on human-reviewed labels?
 3. Is 8 events of context right for Model 1's context window?
+
+## 6. Packaging for the flywheel (KAN-83 → 2.1.27)
+
+```bash
+python -m trainrec dataset fixtures/data -o datasets/v1 [--dev 0.1 --test 0.1 --salt v1]
+```
+
+Writes `sft.{train,dev,test}.jsonl` (chat `messages`: system / user / assistant), `dpo.{train,dev,test}.jsonl` (`prompt` / `chosen` / `rejected`, the shape TRL's DPO trainer expects) and `manifest.json`.
+
+* **Splits are by task, not by record.** Sessions whose runs are the same task (same-task score ≥ 0.4, [procedures.md](procedures.md)) are grouped, and a group's split comes from a hash of the salt and the group key. A near-copy of a training session can't end up in test, and adding new sessions never moves old ones.
+* **Train/serve parity:** the user prompt is byte-identical to what the streaming annotator sends live (`streaming.build_prompt`), and a test checks this.
+* Records are deduplicated by id. Every row's `meta` carries the session, evidence ids, redaction version, license and label source, so a session can be removed later.
+* The manifest lists the sessions per split, the task groups, the redaction versions and the policy skips. It holds no content.
+
+What the training side (KAN-66 onward) still has to do: run training on these files. That needs GPU time and approved teacher models (KAN-65).
